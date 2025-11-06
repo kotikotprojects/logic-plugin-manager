@@ -1,0 +1,56 @@
+[project]
+name = "logic-plugin-manager"
+version = "0.0.1"
+description = "A utility for parsing and managing plugins in Logic Pro"
+readme = "README.md"
+authors = [
+    { name = "h", email = "h@kotikot.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+license = { file = "LICENSE.md" }
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: MacOS",
+    "Typing :: Typed",
+]
+keywords = [
+    "logic pro",
+    "audio plugins",
+    "au",
+    "plugin manager",
+    "music production",
+]
+
+[project.urls]
+Homepage = "https://git.kotikot.com/lib/logic-plugin-manager"
+Repository = "https://github.com/kotikotprojects/logic-plugin-manager"
+"Commercial License" = "https://github.com/kotikotprojects/logic-plugin-manager/blob/main/LICENSE-COMMERCIAL.md"
+
+[project.optional-dependencies]
+search = [
+    "rapidfuzz>=3.14.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.7,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "rich>=14.2.0",
+    "rapidfuzz>=3.14.3",
+]
+
+[tool.isort]
+profile = "black"
+
+[tool.ruff.lint]
+extend-select = ["RUF022"]
