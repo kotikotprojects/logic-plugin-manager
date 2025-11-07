@@ -1,3 +1,9 @@
+"""Main Logic Pro plugin management interface.
+
+This module provides the Logic class, the primary entry point for discovering
+and managing Logic Pro's audio plugins and their categorization.
+"""
+
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,6 +18,20 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Logic:
+    """Main interface for Logic Pro plugin and category management.
+
+    Provides high-level operations for discovering plugins, managing categories,
+    and bulk category assignments.
+
+    Attributes:
+        musicapps: MusicApps instance for database access.
+        plugins: Plugins collection with search capabilities.
+        components: Set of discovered Component bundles.
+        categories: Dictionary of category name to Category instance.
+        components_path: Path to Audio Components directory.
+        tags_path: Path to tags database directory.
+    """
+
     musicapps: MusicApps
     plugins: Plugins
     components: set[Component]
@@ -26,6 +46,17 @@ class Logic:
         tags_path: Path | str = None,
         lazy: bool = False,
     ):
+        """Initialize Logic plugin manager.
+
+        Args:
+            components_path: Custom path to Components directory.
+            tags_path: Custom path to tags database.
+            lazy: If True, skip automatic discovery.
+
+        Note:
+            If lazy=False, automatically calls discover_plugins() and
+            discover_categories() which may raise various exceptions.
+        """
         self.components_path = (
             Path(components_path) if components_path else defaults.components_path
         )
@@ -48,6 +79,14 @@ class Logic:
             self.discover_categories()
 
     def discover_plugins(self) -> "Logic":
+        """Scan components directory and load all plugins.
+
+        Iterates through .component bundles, loading their AudioComponents
+        into the plugins collection. Failed components are logged as warnings.
+
+        Returns:
+            Logic: Self for method chaining.
+        """
         for component_path in self.components_path.glob("*.component"):
             try:
                 logger.debug(f"Loading component {component_path}")
@@ -64,6 +103,14 @@ class Logic:
         return self
 
     def discover_categories(self) -> "Logic":
+        """Load all categories from the MusicApps database.
+
+        Returns:
+            Logic: Self for method chaining.
+
+        Raises:
+            MusicAppsLoadError: If database files cannot be loaded.
+        """
         for category in self.musicapps.tagpool.categories.keys():
             logger.debug(f"Loading category {category}")
             self.categories[category] = Category(

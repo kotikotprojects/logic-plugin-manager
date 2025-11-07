@@ -12,3 +12,8 @@ wheels/
 # Development and testing
 .idea
 t
+
+# Docs
+docs/_build/
+docs/_static/
+docs/_templates/

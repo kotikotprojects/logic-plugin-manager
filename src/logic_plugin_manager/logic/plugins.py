@@ -1,3 +1,9 @@
+"""Plugin collection management and search functionality.
+
+This module provides the Plugins class for storing, indexing, and searching
+AudioComponent instances with various query strategies including fuzzy matching.
+"""
+
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
@@ -9,12 +15,26 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SearchResult:
+    """Result from a plugin search with relevance scoring.
+
+    Attributes:
+        plugin: The matched AudioComponent instance.
+        score: Relevance score (higher is better).
+        match_field: Field that matched (e.g., 'name', 'manufacturer').
+    """
+
     plugin: AudioComponent
     score: float
     match_field: str
 
 
 class Plugins:
+    """Collection of plugins with indexed search capabilities.
+
+    Maintains multiple indexes for fast lookups by various attributes
+    and provides fuzzy search functionality using rapidfuzz.
+    """
+
     def __init__(self):
         self._plugins: set[AudioComponent] = set()
 
@@ -29,6 +49,15 @@ class Plugins:
         self._by_category: dict[str | None, set[AudioComponent]] = defaultdict(set)
 
     def add(self, plugin: AudioComponent, *, lazy: bool = False) -> "Plugins":
+        """Add a plugin to the collection.
+
+        Args:
+            plugin: AudioComponent to add.
+            lazy: If True, skip indexing (call reindex_all later).
+
+        Returns:
+            Plugins: Self for method chaining.
+        """
         logger.debug(f"Adding plugin {plugin.full_name}")
         self._plugins.add(plugin)
         if not lazy:
@@ -118,6 +147,23 @@ class Plugins:
         fuzzy_threshold: int = 80,
         max_results: int | None = None,
     ) -> list[SearchResult]:
+        """Search for plugins with scoring and fuzzy matching.
+
+        Searches across multiple fields (name, manufacturer, category, type codes)
+        with relevance scoring. Higher scores indicate better matches.
+
+        Args:
+            query: Search query string.
+            use_fuzzy: Enable fuzzy matching (requires rapidfuzz package).
+            fuzzy_threshold: Minimum fuzzy match score (0-100).
+            max_results: Limit number of results (None for unlimited).
+
+        Returns:
+            list[SearchResult]: Sorted search results (highest score first).
+
+        Raises:
+            ImportError: If use_fuzzy=True but rapidfuzz is not installed.
+        """
         if not query or not query.strip():
             return []
 

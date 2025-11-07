@@ -1,3 +1,9 @@
+"""Component bundle representation and parsing.
+
+This module provides the Component class for loading and parsing macOS
+Audio Component bundles (.component directories) and their Info.plist files.
+"""
+
 import logging
 import plistlib
 from dataclasses import dataclass
@@ -18,6 +24,20 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Component:
+    """Represents a macOS Audio Component bundle.
+
+    A Component bundle (.component) can contain one or more AudioComponents.
+    This class parses the bundle's Info.plist and instantiates AudioComponent
+    objects for each Audio Unit defined within.
+
+    Attributes:
+        name: Component bundle name (without .component extension).
+        bundle_id: CFBundleIdentifier from Info.plist.
+        short_version: CFBundleShortVersionString from Info.plist.
+        version: CFBundleVersion from Info.plist.
+        audio_components: List of AudioComponent instances from this bundle.
+    """
+
     name: str
     bundle_id: str
     short_version: str
@@ -32,6 +52,17 @@ class Component:
         tags_path: Path = defaults.tags_path,
         musicapps: MusicApps = None,
     ):
+        """Initialize a Component from a bundle path.
+
+        Args:
+            path: Path to .component bundle (with or without .component extension).
+            lazy: If True, defer loading Info.plist and AudioComponents.
+            tags_path: Path to tags database directory.
+            musicapps: Shared MusicApps instance for category management.
+
+        Note:
+            If lazy=False, raises can occur from load() method during initialization.
+        """
         self.path = path if path.suffix == ".component" else Path(f"{path}.component")
         self.lazy = lazy
         self.tags_path = tags_path
@@ -42,6 +73,18 @@ class Component:
             self.load()
 
     def _parse_plist(self):
+        """Parse the Info.plist file from the component bundle.
+
+        Returns:
+            dict: Parsed plist data.
+
+        Raises:
+            NonexistentPlistError: If Info.plist file doesn't exist.
+            CannotParsePlistError: If plist cannot be parsed. This wraps:
+                - plistlib.InvalidFileException: Invalid plist format.
+                - OSError, IOError: File read errors.
+                - UnicodeDecodeError: Encoding issues.
+        """
         info_plist_path = self.path / "Contents" / "Info.plist"
         logger.debug(f"Parsing Info.plist at {info_plist_path}")
         if not info_plist_path.exists():
@@ -55,6 +98,22 @@ class Component:
             raise CannotParsePlistError(f"An error occurred: {e}") from e
 
     def load(self) -> "Component":
+        """Load and parse the component bundle and its AudioComponents.
+
+        Parses Info.plist, extracts bundle metadata, and creates AudioComponent
+        instances for each Audio Unit defined in the AudioComponents array.
+
+        Returns:
+            Component: Self for method chaining.
+
+        Raises:
+            NonexistentPlistError: If Info.plist doesn't exist (from _parse_plist).
+            CannotParsePlistError: If plist parsing or metadata extraction fails.
+                This wraps AttributeError, TypeError from dict.get() operations.
+            OldComponentFormatError: If AudioComponents key is missing (legacy format).
+            CannotParseComponentError: If AudioComponent instantiation fails.
+                This wraps CannotParseComponentError from AudioComponent.__init__.
+        """
         plist_data = self._parse_plist()
         logger.debug(f"Loaded Info.plist for {self.path}")
 
@@ -95,6 +154,11 @@ class Component:
         return self
 
     def __hash__(self):
+        """Return hash based on bundle_id for use in sets and dicts.
+
+        Returns:
+            int: Hash value.
+        """
         return hash(self.bundle_id)
 
 

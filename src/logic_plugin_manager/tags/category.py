@@ -1,3 +1,9 @@
+"""Category management for plugin organization.
+
+This module provides the Category class for working with Logic Pro's hierarchical
+category system used to organize and filter audio plugins.
+"""
+
 import logging
 from dataclasses import dataclass, field
 
@@ -9,6 +15,19 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Category:
+    """Represents a Logic Pro plugin category.
+
+    Categories form a hierarchical structure using colon-separated names
+    (e.g., 'Effects:EQ'). Each category tracks plugin count and sorting order.
+
+    Attributes:
+        name: Category name (colon-separated for hierarchy).
+        musicapps: MusicApps instance for database access.
+        is_root: True if this is the root category (empty name).
+        plugin_amount: Number of plugins in this category.
+        lazy: Whether lazy loading is enabled.
+    """
+
     name: str
     musicapps: MusicApps = field(repr=False)
     is_root: bool
@@ -16,6 +35,16 @@ class Category:
     lazy: bool
 
     def __init__(self, name: str, *, musicapps: MusicApps = None, lazy: bool = False):
+        """Initialize a Category.
+
+        Args:
+            name: Category name.
+            musicapps: MusicApps instance (created if None).
+            lazy: If True, defer validation.
+
+        Note:
+            If lazy=False, raises can occur from load() during initialization.
+        """
         self.name = name
         self.musicapps = musicapps or MusicApps(lazy=lazy)
         self.is_root = False
@@ -26,6 +55,12 @@ class Category:
             self.load()
 
     def load(self):
+        """Validate and load category data from MusicApps database.
+
+        Raises:
+            CategoryValidationError: If category doesn't exist in database.
+            MusicAppsLoadError: If database files cannot be loaded.
+        """
         logger.debug(f"Validating category {self.name}")
         if self.name not in self.musicapps.tagpool.categories.keys():
             raise CategoryValidationError(f"Category {self.name} not found in tagpool")
@@ -41,6 +76,21 @@ class Category:
 
     @classmethod
     def introduce(cls, name: str, *, musicapps: MusicApps = None, lazy: bool = False):
+        """Create a new category in the database.
+
+        Args:
+            name: Name for the new category.
+            musicapps: MusicApps instance (created if None).
+            lazy: Whether to use lazy loading.
+
+        Returns:
+            Category: Newly created category instance.
+
+        Raises:
+            CategoryExistsError: If category already exists.
+            MusicAppsLoadError: If database files cannot be loaded.
+            MusicAppsWriteError: If database files cannot be written.
+        """
         logger.debug(f"Introducing category {name}")
         if musicapps is None:
             musicapps = MusicApps()
@@ -58,6 +108,11 @@ class Category:
 
     @property
     def parent(self) -> "Category":
+        """Get the parent category in the hierarchy.
+
+        Returns:
+            Category: Parent category, or self if this is root.
+        """
         if self.is_root:
             return self
         return self.__class__(
@@ -67,6 +122,14 @@ class Category:
         )
 
     def child(self, name: str) -> "Category":
+        """Create a child category reference.
+
+        Args:
+            name: Child category name (without parent prefix).
+
+        Returns:
+            Category: Child category instance.
+        """
         return self.__class__(
             f"{self.name}:{name}", musicapps=self.musicapps, lazy=self.lazy
         )

@@ -47,6 +47,9 @@ build-backend = "uv_build"
 dev = [
     "rich>=14.2.0",
     "rapidfuzz>=3.14.3",
+    "sphinx>=8.2.3",
+    "sphinx-autodoc-typehints>=3.5.2",
+    "furo>=2025.9.25",
 ]
 
 [tool.isort]
