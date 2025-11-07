@@ -1,7 +1,10 @@
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
 
 from ..components import AudioComponent, AudioUnitType
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -26,13 +29,16 @@ class Plugins:
         self._by_category: dict[str | None, set[AudioComponent]] = defaultdict(set)
 
     def add(self, plugin: AudioComponent, *, lazy: bool = False) -> "Plugins":
+        logger.debug(f"Adding plugin {plugin.full_name}")
         self._plugins.add(plugin)
         if not lazy:
             self._index_plugin(plugin)
         return self
 
     def _index_plugin(self, plugin: AudioComponent):
+        logger.debug(f"Indexing plugin {plugin.full_name}")
         if plugin.lazy:
+            logger.debug(f"{plugin.full_name} is lazy, loading first")
             plugin.load()
             plugin.tagset.load()
 
@@ -48,8 +54,10 @@ class Plugins:
             self._by_category[tag.lower()].add(plugin)
         if not plugin.tagset.tags.keys():
             self._by_category[None].add(plugin)
+        logger.debug(f"Indexed plugin {plugin.full_name}")
 
     def reindex_all(self):
+        logger.debug("Reindexing all plugins")
         self._by_full_name.clear()
         self._by_manufacturer.clear()
         self._by_name.clear()
@@ -59,9 +67,11 @@ class Plugins:
         self._by_subtype_code.clear()
         self._by_tags_id.clear()
         self._by_category.clear()
+        logger.debug("Cleared all indexes")
 
         for plugin in self._plugins:
             self._index_plugin(plugin)
+        logger.debug("Reindexed all plugins")
 
     def all(self):
         return self._plugins.copy()

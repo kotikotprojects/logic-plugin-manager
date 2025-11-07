@@ -1,10 +1,13 @@
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
 from .. import defaults
 from ..exceptions import CannotParseComponentError
-from ..tags import Tagset
+from ..tags import Category, MusicApps, Tagset
+
+logger = logging.getLogger(__name__)
 
 
 class AudioUnitType(Enum):
@@ -62,12 +65,19 @@ class AudioComponent:
     version: int
     tags_id: str
     tagset: Tagset
+    categories: list[Category] = field(default_factory=list)
 
     def __init__(
-        self, data: dict, *, lazy: bool = False, tags_path: Path = defaults.tags_path
+        self,
+        data: dict,
+        *,
+        lazy: bool = False,
+        tags_path: Path = defaults.tags_path,
+        musicapps: MusicApps = None,
     ):
         self.tags_path = tags_path
         self.lazy = lazy
+        self.musicapps = musicapps or MusicApps(tags_path=self.tags_path, lazy=lazy)
 
         try:
             self.full_name = data.get("name")
@@ -85,23 +95,77 @@ class AudioComponent:
                 f"{self.subtype_code.encode('ascii').hex()}-"
                 f"{self.manufacturer_code.encode('ascii').hex()}"
             )
+            logger.debug(f"Created AudioComponent {self.full_name} from data")
         except Exception as e:
-            raise CannotParseComponentError(f"An error occurred while parsing: {e}")
+            raise CannotParseComponentError(
+                f"An error occurred while parsing: {e}"
+            ) from e
 
         if not lazy:
             self.load()
 
     def load(self) -> "AudioComponent":
+        logger.debug(f"Loading AudioComponent {self.full_name}")
         self.tagset = Tagset(self.tags_path / self.tags_id, lazy=self.lazy)
+        logger.debug(f"Loaded Tagset for {self.full_name}")
+        self.categories = []
+        for name in self.tagset.tags.keys():
+            try:
+                logger.debug(f"Loading category {name} for {self.full_name}")
+                self.categories.append(
+                    Category(name, musicapps=self.musicapps, lazy=self.lazy)
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load category {name} for {self.full_name}: {e}"
+                )
+        logger.debug(f"Loaded {len(self.categories)} categories for {self.full_name}")
         return self
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, AudioComponent):
             return NotImplemented
         return self.tags_id == other.tags_id
 
     def __hash__(self):
         return hash(self.tags_id)
+
+    def set_nickname(self, nickname: str) -> "AudioComponent":
+        self.tagset.set_nickname(nickname)
+        self.load()
+        return self
+
+    def set_shortname(self, shortname: str) -> "AudioComponent":
+        self.tagset.set_shortname(shortname)
+        self.load()
+        return self
+
+    def set_categories(self, categories: list[Category]) -> "AudioComponent":
+        self.tagset.set_tags({category.name: "user" for category in categories})
+        self.load()
+        return self
+
+    def add_to_category(self, category: Category) -> "AudioComponent":
+        self.tagset.add_tag(category.name, "user")
+        self.load()
+        return self
+
+    def remove_from_category(self, category: Category) -> "AudioComponent":
+        self.tagset.remove_tag(category.name)
+        self.load()
+        return self
+
+    def move_to_category(self, category: Category) -> "AudioComponent":
+        self.tagset.move_to_tag(category.name, "user")
+        self.load()
+        return self
+
+    def move_to_parents(self) -> "AudioComponent":
+        for category in self.categories:
+            self.tagset.add_tag(category.parent.name, "user")
+            self.tagset.remove_tag(category.name)
+        self.load()
+        return self
 
 
 __all__ = ["AudioComponent", "AudioUnitType"]
