@@ -107,11 +107,11 @@ class Tagset:
 
         return self
 
-    def set_nickname(self, nickname: str):
-        """Set the nickname field in the tagset.
+    def set_nickname(self, nickname: str | None):
+        """Set or remove the nickname field in the tagset.
 
         Args:
-            nickname: New nickname value.
+            nickname: New nickname value, or None to remove the nickname.
 
         Raises:
             NonexistentTagsetError: If .tagset file doesn't exist (from load).
@@ -119,15 +119,18 @@ class Tagset:
             TagsetWriteError: If writing fails (from _write_plist).
         """
         self.load()
-        self.__raw_data["nickname"] = nickname
+        if nickname is None:
+            self.__raw_data.pop("nickname", None)
+        else:
+            self.__raw_data["nickname"] = nickname
         self._write_plist()
         self.load()
 
-    def set_shortname(self, shortname: str):
-        """Set the shortname field in the tagset.
+    def set_shortname(self, shortname: str | None):
+        """Set or remove the shortname field in the tagset.
 
         Args:
-            shortname: New short name value.
+            shortname: New short name value, or None to remove the short name.
 
         Raises:
             NonexistentTagsetError: If .tagset file doesn't exist (from load).
@@ -135,7 +138,10 @@ class Tagset:
             TagsetWriteError: If writing fails (from _write_plist).
         """
         self.load()
-        self.__raw_data["shortname"] = shortname
+        if shortname is None:
+            self.__raw_data.pop("shortname", None)
+        else:
+            self.__raw_data["shortname"] = shortname
         self._write_plist()
         self.load()
 

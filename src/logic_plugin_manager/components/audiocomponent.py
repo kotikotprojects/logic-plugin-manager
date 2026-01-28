@@ -234,11 +234,11 @@ class AudioComponent:
         """
         return hash(self.tags_id)
 
-    def set_nickname(self, nickname: str) -> "AudioComponent":
-        """Set a custom nickname for this component.
+    def set_nickname(self, nickname: str | None) -> "AudioComponent":
+        """Set or remove a custom nickname for this component.
 
         Args:
-            nickname: Custom nickname string.
+            nickname: Custom nickname string, or None to remove the nickname.
 
         Returns:
             AudioComponent: Self for method chaining.
@@ -252,11 +252,11 @@ class AudioComponent:
         self.load()
         return self
 
-    def set_shortname(self, shortname: str) -> "AudioComponent":
-        """Set a custom short name for this component.
+    def set_shortname(self, shortname: str | None) -> "AudioComponent":
+        """Set or remove a custom short name for this component.
 
         Args:
-            shortname: Custom short name string.
+            shortname: Custom short name string, or None to remove the short name.
 
         Returns:
             AudioComponent: Self for method chaining.

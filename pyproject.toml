@@ -1,6 +1,6 @@
 [project]
 name = "logic-plugin-manager"
-version = "1.0.0"
+version = "1.0.1"
 description = "A utility for parsing and managing plugins in Logic Pro"
 readme = "README.md"
 authors = [
